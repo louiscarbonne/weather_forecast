@@ -19,6 +19,7 @@ from math import sin, cos, sqrt, atan2, radians
 import sqlite3
 import argparse
 import sys
+import os
 from datetime import datetime
 
 
@@ -58,8 +59,8 @@ def list_stations_from_smhi(version, start_year, end_year, D, param_dict):
             distance = distance_from_coord(59.342,18.0575,lat,lon)
 #            print(distance)
             
-            t1 = station.find('metobs:from',ns).text.split('-')[0]
-            t2 = station.find('metobs:to',ns).text.split('-')[0]
+            t1 = int(station.find('metobs:from',ns).text.split('-')[0])
+            t2 = int(station.find('metobs:to',ns).text.split('-')[0])
 #            print(start_year,end_year)
 
             if distance < D and t1 <= start_year and t2 >= end_year:
@@ -75,11 +76,11 @@ def list_stations_from_smhi(version, start_year, end_year, D, param_dict):
             stations = stations_temp.copy()
         else:
             stations = stations & stations_temp
-            print(stations_temp)
-            print('Set of stations removed from the current list because not in list of param ',key,' :' )
-            print(stations-stations_temp)
-            print('Set of stations not added because not in current list:')
-            print(stations_temp-stations)
+        print(stations_temp)
+        print('Set of stations removed from the current list because not in list of param ',key,' :' )
+        print(stations-stations_temp)
+        print('Set of stations not added because not in current list:')
+        print(stations_temp-stations)
         k += 1
         print('###################################################')
               
@@ -90,6 +91,9 @@ def list_stations_from_smhi(version, start_year, end_year, D, param_dict):
 def smhi_to_db(version, station_list, start_year, end_year, param_dict, db, table_name):
     
     url_base = 'http://opendata-download-metobs.smhi.se/api/version/'+version
+    
+    if not os.path.exists(db):
+        open(db, 'a').close()
     
     conn = sqlite3.connect(db)
     
@@ -139,14 +143,16 @@ def main(args):
         parameters['r_per_h'] = 7
     
     version = args.smhi_version
-    start_year = args.start_year
-    end_year = args.end_year
+    start_year = int(args.start_year)
     date_time = datetime.now()
+    end_year = args.end_year
     if end_year == None:
         end_year = int(date_time.strftime('%Y'))
+    else:
+        end_year = int(end_year)
     distance_to_stm = args.distance_to_stm
     
-    db_name = args.db_name+'_'+date_time.strftime('%d-%m-%Y_%H:%M:%S')+'.db'
+    db_name = args.db_name+'_'+date_time.strftime('%d-%m-%Y_%H-%M-%S')+'.db'
     table_name = 'data'
     
     
@@ -162,7 +168,7 @@ if __name__ == '__main__':
     parser.add_argument('--end_year', help='end year to extract data',type=int,default=None)
     parser.add_argument('--distance_to_stm', help='maximum distance to Stockholm of stations to gather data from', type = int, default = 1)
     parser.add_argument('--db_name', help='your database name',default = 'weather_stm')
-    main(parser.parse_args(sys.argv[0]))
+    main(parser.parse_args())
     
 
 
